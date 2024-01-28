@@ -1,3 +1,4 @@
+import { swagger } from '@elysiajs/swagger'
 import {
   GenerationConfig,
   GoogleGenerativeAI,
@@ -47,18 +48,17 @@ const model = genAI.getGenerativeModel({
 })
 
 const app = new Elysia()
+  .use(swagger())
+  .post(
+    '/generate',
+    async ({ body }) => {
+      const { prompt } = body
+      const { response } = await model.generateContent(prompt)
 
-app.post(
-  '/generate',
-  async ({ body }) => {
-    const { prompt } = body
-    const { response } = await model.generateContent(prompt)
-
-    return {
-      text: response.text(),
-    }
-  },
-  { body: t.Object({ prompt: t.String() }) },
-)
-
-app.listen(3000)
+      return {
+        text: response.text(),
+      }
+    },
+    { body: t.Object({ prompt: t.String() }) },
+  )
+  .listen(3000)
