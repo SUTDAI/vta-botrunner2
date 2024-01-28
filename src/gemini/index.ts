@@ -12,7 +12,9 @@ const model = genAI.getGenerativeModel({
   generationConfig,
 })
 
-const defaultCardFile = Bun.file('src/cards/VirtuTA-v0.2.2-specV2.json')
+const defaultCard = Bun.file('src/cards/VirtuTA-v0.2.2-specV2.json')
+/** For debug purposes only. */
+const allowCustomCards = process.env.NODE_ENV == 'development'
 
 export const geminiPlugin = (app: Elysia) => {
   return app.post(
@@ -21,7 +23,21 @@ export const geminiPlugin = (app: Elysia) => {
       const { prompt, customCard } = body
       const { response } = await model.generateContent(prompt)
 
-      const card = parseToV2(await (customCard ?? defaultCardFile).json())
+      let card = parseToV2(await defaultCard.json())
+
+      if (allowCustomCards && customCard) {
+        console.warn(
+          `In ${process.env.NODE_ENV} (should be development) mode, custom card allowed!`,
+        )
+        try {
+          card = parseToV2(JSON.parse(customCard))
+        } catch (e) {
+          console.error(e)
+          throw new SyntaxError('customCard is not valid.')
+        }
+      }
+
+      console.log('Card used:')
       console.log(card)
 
       return { text: response.text() }
