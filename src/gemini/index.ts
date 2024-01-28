@@ -2,6 +2,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { parseToV2 } from 'character-card-utils'
 import { Elysia } from 'elysia'
+import { processPrompt } from '../cards'
 import { GenReqType, GenResType } from '../types'
 import { API_KEY, MODEL_NAME, generationConfig, safetySettings } from './config'
 
@@ -21,10 +22,8 @@ export const geminiPlugin = (app: Elysia) => {
     '/generate',
     async ({ body }) => {
       const { prompt, customCard } = body
-      const { response } = await model.generateContent(prompt)
 
       let card = parseToV2(await defaultCard.json())
-
       if (allowCustomCards && customCard) {
         console.warn(
           `In ${process.env.NODE_ENV} (should be development) mode, custom card allowed!`,
@@ -35,10 +34,17 @@ export const geminiPlugin = (app: Elysia) => {
           console.error(e)
           throw new SyntaxError('customCard is not valid.')
         }
+        console.log('Card used:')
+        console.log(card)
       }
 
-      console.log('Card used:')
-      console.log(card)
+      const content = processPrompt({
+        card,
+        username: 'user',
+        history: [{ role: 'user', parts: [{ text: `user: ${prompt}` }] }],
+      })
+
+      const { response } = await model.generateContent({ contents: content })
 
       return { text: response.text() }
     },
