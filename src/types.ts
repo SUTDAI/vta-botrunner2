@@ -7,6 +7,7 @@ declare module 'bun' {
   }
 }
 
+// https://elysiajs.com/validation/overview.html
 export const GenReqType = t.Object({
   prompt: t.String(),
   customCard: t.Optional(t.File()),
