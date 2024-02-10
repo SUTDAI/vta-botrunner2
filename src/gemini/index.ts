@@ -21,7 +21,7 @@ export const geminiPlugin = (app: Elysia) => {
   return app.post(
     '/generate',
     async ({ body }) => {
-      const { prompt, customCard } = body
+      const { prompt, customCard, chunks } = body
 
       let card = parseToV2(await defaultCard.json())
       if (allowCustomCards && customCard) {
@@ -42,6 +42,7 @@ export const geminiPlugin = (app: Elysia) => {
         card,
         username: 'user',
         history: [{ role: 'user', parts: [{ text: `user: ${prompt}` }] }],
+        chunks: chunks ?? [],
       })
 
       const { response } = await model.generateContent({ contents: content })

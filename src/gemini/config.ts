@@ -34,3 +34,6 @@ export const generationConfig: GenerationConfig = {
   topP: 1,
   topK: 1,
 }
+
+/** Depth at which to insert `post_history_instructions`. */
+export const POST_HIST_INSTRUCT_DEPTH = -2

@@ -1,6 +1,7 @@
 /** Process card to get final prompt. */
 import { Content } from '@google/generative-ai'
 import { V2 } from 'character-card-utils'
+import { POST_HIST_INSTRUCT_DEPTH } from '../gemini/config'
 
 /** Returns function to replace template. */
 function createTemplateProcessor(user: string, char: string) {
@@ -50,10 +51,17 @@ export interface PromptOptions {
   username: string
   /** Chat history. */
   history: Content[]
+  /** Chunks. */
+  chunks: string[]
 }
 
 // TODO: Generalize this from user/model to system/user/model.
-export function processPrompt({ card, username, history }: PromptOptions) {
+export function processPrompt({
+  card,
+  username,
+  history,
+  chunks,
+}: PromptOptions) {
   const {
     name,
     description,
@@ -72,6 +80,14 @@ export function processPrompt({ card, username, history }: PromptOptions) {
   // NOTE: WTF Google, not just no system prompt, but multiturn must be strictly alternating?
   const content: Content[] = []
 
+  const add = (role: string, ...texts: string[]) =>
+    content.push({
+      role,
+      parts: texts.map((text) => ({ text })),
+    })
+
+  const chunksText = chunks.map((c) => `### Info\n${c}`).join('\n\n')
+
   // TODO: How to improve below.
   // - Mimick world info system for injecting RAG?
   // - User persona another avenue to tune how model explains things?
@@ -87,56 +103,30 @@ ${r(personality)}
 
 ## Scenario
 ${r(scenario)}
-
+${chunks ? `\n## Wikipedia\n${chunksText}\n` : ''}
 (System Note: The next few messages are examples of how ${name} might respond to the scenario above.)`
 
-  content.push(
-    {
-      role: 'user',
-      parts: [{ text: sysPrompt }],
-    },
-    // NOTE: Gemini-specific workaround.
-    {
-      role: 'model',
-      parts: [
-        {
-          text: 'system: Certainly! I will follow your instructions faithfully.',
-        },
-      ],
-    },
-  )
+  add('user', sysPrompt)
+  // NOTE: Gemini-specific workaround.
+  add('model', 'system: Certainly! I will follow your instructions faithfully.')
 
   const examples = parseExamples(mes_example)
   for (const example of examples) {
-    content.push({
-      role: 'user',
-      parts: [{ text: 'system: (System Note: Start of Example)' }],
-    })
+    add('user', 'system: (System Note: Start of Example)')
 
     // NOTE: Gemini-specific workaround.
-    if (example[0].role == 'user')
-      content.push({
-        role: 'model',
-        parts: [{ text: first_mes }],
-      })
+    if (example[0].role == 'user') add('model', first_mes)
 
-    content.push(
-      ...example,
-      {
-        role: 'user',
-        parts: [{ text: 'system: (System Note: End of Example)' }],
-      },
-      // NOTE: Gemini-specific workaround.
-      {
-        role: 'model',
-        parts: [
-          { text: 'system: Example taken, waiting for the next instruction.' },
-        ],
-      },
-    )
+    content.push(...example)
+    add('user', 'system: (System Note: End of Example)')
+    // NOTE: Gemini-specific workaround.
+    add('model', 'system: Example taken, waiting for the next instruction.')
   }
 
-  content.push(
+  // TODO: Have to insert this right after a model message due to strict alternating, how?
+  history.splice(
+    POST_HIST_INSTRUCT_DEPTH,
+    0,
     {
       role: 'user',
       parts: [{ text: `system: ${post_history_instructions}` }],
@@ -146,6 +136,9 @@ ${r(scenario)}
       role: 'model',
       parts: [{ text: 'system: Understood.' }],
     },
+  )
+
+  content.push(
     {
       role: 'user',
       parts: [{ text: 'system: (System Note: Start of Live Conversation)' }],

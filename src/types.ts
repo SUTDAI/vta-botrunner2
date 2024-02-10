@@ -11,5 +11,6 @@ declare module 'bun' {
 export const GenReqType = t.Object({
   prompt: t.String(),
   customCard: t.Optional(t.String()),
+  chunks: t.Optional(t.Array(t.String())),
 })
 export const GenResType = t.Object({ text: t.String() })
