@@ -49,21 +49,23 @@ export const geminiPlugin = (app: Elysia) => {
         })
         const result: any = await resp.json()
         defaultChunks = result.chunks.map(([s, t]: [number, string]) => t)
-        console.log(
-          `Query: "${prompt}"\n\nChunks (${defaultChunks.length}):\n${defaultChunks.join('\n\n')}`,
-        )
+        // console.log(
+        //   `Query: "${prompt}"\n\nChunks (${defaultChunks.length}):\n${defaultChunks.join('\n\n')}`,
+        // )
       }
 
+      defaultChunks = chunks ?? defaultChunks
       const content = processPrompt({
         card,
         username: 'user',
         history: [{ role: 'user', parts: [{ text: `user: ${prompt}` }] }],
-        chunks: chunks ?? defaultChunks,
+        chunks: defaultChunks,
       })
+      console.log(content.map((c) => c.parts[0].text).join('\n\n'))
 
       const { response } = await model.generateContent({ contents: content })
 
-      return { text: response.text() }
+      return { text: response.text(), chunks: defaultChunks }
     },
     { body: GenReqType, response: GenResType },
   )

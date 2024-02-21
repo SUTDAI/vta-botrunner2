@@ -16,4 +16,7 @@ export const GenReqType = t.Object({
   chunks: t.Optional(t.Array(t.String())),
   autoSearch: t.Optional(t.Boolean()),
 })
-export const GenResType = t.Object({ text: t.String() })
+export const GenResType = t.Object({
+  text: t.String(),
+  chunks: t.Optional(t.Array(t.String())),
+})
