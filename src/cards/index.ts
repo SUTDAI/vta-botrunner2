@@ -55,6 +55,8 @@ export interface PromptOptions {
   chunks: string[]
 }
 
+// TODO: BIG TODO: THE CHARACTER CARD IS INCORRECT FOR THIS SYSTEM + IT LEAKS INFO.
+
 // TODO: Generalize this from user/model to system/user/model.
 export function processPrompt({
   card,

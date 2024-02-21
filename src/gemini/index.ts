@@ -21,7 +21,7 @@ export const geminiPlugin = (app: Elysia) => {
   return app.post(
     '/generate',
     async ({ body }) => {
-      const { prompt, customCard, chunks } = body
+      const { prompt, customCard, chunks, autoSearch } = body
 
       let card = parseToV2(await defaultCard.json())
       if (allowCustomCards && customCard) {
@@ -38,11 +38,27 @@ export const geminiPlugin = (app: Elysia) => {
         console.log(card)
       }
 
+      let defaultChunks: string[] = []
+      if (autoSearch) {
+        const resp = await fetch(process.env.RAG_EP, {
+          method: 'POST',
+          body: JSON.stringify({
+            ds_id: '00000000-0000-0000-0000-000000000000',
+            query: prompt,
+          }),
+        })
+        const result: any = await resp.json()
+        defaultChunks = result.chunks.map(([s, t]: [number, string]) => t)
+        console.log(
+          `Query: "${prompt}"\n\nChunks (${defaultChunks.length}):\n${defaultChunks.join('\n\n')}`,
+        )
+      }
+
       const content = processPrompt({
         card,
         username: 'user',
         history: [{ role: 'user', parts: [{ text: `user: ${prompt}` }] }],
-        chunks: chunks ?? [],
+        chunks: chunks ?? defaultChunks,
       })
 
       const { response } = await model.generateContent({ contents: content })
