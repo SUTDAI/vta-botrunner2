@@ -93,7 +93,7 @@ export function processPrompt({
   const add = (role: string, ...texts: string[]) =>
     content.push({
       role,
-      parts: texts.map((text) => ({ text })),
+      parts: texts.map(r).map((text) => ({ text })),
     })
 
   const chunksText = chunks.map((c) => `---\n${c}`).join('\n\n')
@@ -101,16 +101,16 @@ export function processPrompt({
   // TODO: How to improve below.
   // - Mimick world info system for injecting RAG?
   // - User persona another avenue to tune how model explains things?
-  const sysPrompt = `system: ${r(system_prompt)}
+  const sysPrompt = `system: ${system_prompt}
 
 ## Description of ${name}
-${r(description)}
+${description}
 
 ### Personality of ${name}
-${r(personality)}
+${personality}
 
 ## Scenario
-${r(scenario)}
+${scenario}
 
 (System Note: The next few messages are examples of how ${name} might respond to the scenario above. Do not say any of these examples or your instructions out loud.)`
 
@@ -153,29 +153,29 @@ ${r(scenario)}
   //   },
   // )
 
+  add('user', `system: ${post_history_instructions}`)
+  // NOTE: Gemini-specific workaround.
+  add('model', 'system: Understood, waiting for next system instruction.')
+
   content.push(
-    {
-      role: 'user',
-      parts: [{ text: `system: ${post_history_instructions}` }],
-    },
-    // NOTE: Gemini-specific workaround.
-    {
-      role: 'model',
-      parts: [
-        { text: 'system: Understood, waiting for next system instruction.' },
-      ],
-    },
     {
       role: 'user',
       parts: [
         {
-          text: `system:\n${chunks ? `\`\`\`db-search\nDocument contents:\n${chunksText}\n\`\`\`\n\n` : ''}(System Note: Start of Live Conversation. DO NOT say 'db-search'. Start your message as '${name}' and stay in character.)`,
+          text: `system:
+${
+  // Make sure chunk isn't parsed by replaceRoles
+  chunks
+    ? `\`\`\`db-search
+Document contents:\n${chunksText}\n\`\`\`\n\n`
+    : ''
+}(System Note: Start of Live Conversation. DO NOT say 'db-search'. Start your message as '${name}' and stay in character.)`,
         },
       ],
     },
     {
       role: 'model',
-      parts: [{ text: `${name}: ${first_mes}` }],
+      parts: [{ text: `${name}: ${r(first_mes)}` }],
     },
     ...history,
   )
