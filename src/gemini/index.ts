@@ -52,7 +52,9 @@ export const geminiPlugin = (app: Elysia) => {
           }),
         })
         const result: any = await resp.json()
-        defaultChunks = result.chunks.map(([s, t]: [number, string]) => t)
+        defaultChunks = [result.chunks ?? []]
+          .map(([s, t]: [number, string]) => t ?? false)
+          .filter(Boolean)
         // console.log(
         //   `Query: "${prompt}"\n\nChunks (${defaultChunks.length}):\n${defaultChunks.join('\n\n')}`,
         // )
@@ -69,7 +71,10 @@ export const geminiPlugin = (app: Elysia) => {
 
       const { response } = await model.generateContent({ contents: content })
 
-      return { text: response.text(), chunks: defaultChunks }
+      return {
+        text: response.text().replace(`${card.data.name}: `, ''),
+        chunks: defaultChunks,
+      }
     },
     { body: GenReqType, response: GenResType },
   )
