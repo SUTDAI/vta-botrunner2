@@ -9,9 +9,15 @@ declare module 'bun' {
   }
 }
 
+export interface Msg {
+  role: 'user' | 'model'
+  text: string
+}
+
 // https://elysiajs.com/validation/overview.html
 export const GenReqType = t.Object({
-  prompt: t.String(),
+  prompt: t.Optional(t.String()),
+  chat: t.Optional(t.Array(t.Object({ role: t.String(), text: t.String() }))),
   customCard: t.Optional(t.String()),
   chunks: t.Optional(t.Array(t.String())),
   autoSearch: t.Optional(t.Boolean()),

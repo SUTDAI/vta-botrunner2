@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { parseToV2 } from 'character-card-utils'
 import { Elysia } from 'elysia'
 import { processPrompt } from '../cards'
-import { GenReqType, GenResType } from '../types'
+import { GenReqType, GenResType, Msg } from '../types'
 import { API_KEY, MODEL_NAME, generationConfig, safetySettings } from './config'
 
 const genAI = new GoogleGenerativeAI(API_KEY)
@@ -21,7 +21,11 @@ export const geminiPlugin = (app: Elysia) => {
   return app.post(
     '/generate',
     async ({ body }) => {
-      const { prompt, customCard, chunks, autoSearch } = body
+      const { prompt, chat, customCard, chunks, autoSearch } = body
+      if ((!prompt && !chat) || (prompt && chat))
+        throw new TypeError('Only prompt or chat must be provided.')
+
+      let history: Msg[] = (chat as Msg[]) ?? [{ role: 'user', text: prompt }]
 
       let card = parseToV2(await defaultCard.json())
       if (allowCustomCards && customCard) {
@@ -58,7 +62,7 @@ export const geminiPlugin = (app: Elysia) => {
       const content = processPrompt({
         card,
         username: 'user',
-        history: [{ role: 'user', parts: [{ text: `user: ${prompt}` }] }],
+        history,
         chunks: defaultChunks,
       })
       console.log(content.map((c) => c.parts[0].text).join('\n\n'))

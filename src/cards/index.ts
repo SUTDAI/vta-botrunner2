@@ -1,6 +1,7 @@
 /** Process card to get final prompt. */
 import { Content } from '@google/generative-ai'
 import { V2 } from 'character-card-utils'
+import { Msg } from '../types'
 
 /** Returns function to replace template. */
 function createTemplateProcessor(
@@ -58,7 +59,7 @@ export interface PromptOptions {
   /** Username. */
   username: string
   /** Chat history. */
-  history: Content[]
+  history: Msg[]
   /** Chunks. */
   chunks: string[]
 }
@@ -157,6 +158,14 @@ ${scenario}
   // NOTE: Gemini-specific workaround.
   add('model', 'system: Understood, waiting for next system instruction.')
 
+  // Remove model greeting.
+  if (history[0].role == 'model') history.shift()
+  // Reparse into Gemini format.
+  const formatted = history.map(({ role, text }) => ({
+    role,
+    parts: [{ text: `${role === 'model' ? name : 'user'}: ${text}` }],
+  }))
+
   content.push(
     {
       role: 'user',
@@ -177,7 +186,7 @@ Document contents:\n${chunksText}\n\`\`\`\n\n`
       role: 'model',
       parts: [{ text: `${name}: ${r(first_mes)}` }],
     },
-    ...history,
+    ...formatted,
   )
 
   return content
