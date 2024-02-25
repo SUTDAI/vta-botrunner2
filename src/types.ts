@@ -21,6 +21,7 @@ export const GenReqType = t.Object({
   customCard: t.Optional(t.String()),
   chunks: t.Optional(t.Array(t.String())),
   autoSearch: t.Optional(t.Boolean()),
+  datasetId: t.Optional(t.String()),
 })
 export const GenResType = t.Object({
   text: t.String(),

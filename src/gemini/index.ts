@@ -21,7 +21,7 @@ export const geminiPlugin = (app: Elysia) => {
   return app.post(
     '/generate',
     async ({ body }) => {
-      const { prompt, chat, customCard, chunks, autoSearch } = body
+      const { prompt, chat, customCard, chunks, autoSearch, datasetId } = body
       if ((!prompt && !chat) || (prompt && chat))
         throw new TypeError('Only prompt or chat must be provided.')
 
@@ -47,12 +47,12 @@ export const geminiPlugin = (app: Elysia) => {
         const resp = await fetch(process.env.RAG_EP, {
           method: 'POST',
           body: JSON.stringify({
-            ds_id: '00000000-0000-0000-0000-000000000000',
-            query: prompt,
+            ds_id: datasetId ?? '00000000-0000-0000-0000-000000000000',
+            query: history[history.length - 1].text ?? '',
           }),
         })
         const result: any = await resp.json()
-        defaultChunks = [result.chunks ?? []]
+        defaultChunks = (result.chunks ?? [])
           .map(([s, t]: [number, string]) => t ?? false)
           .filter(Boolean)
         // console.log(
