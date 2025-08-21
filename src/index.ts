@@ -5,4 +5,4 @@ import { geminiPlugin } from './gemini'
 export const app = new Elysia()
   .use(swagger())
   .group('/api/v1', (app) => app.get('/hello', 'world').use(geminiPlugin))
-  .listen(3000)
+  .listen(3010)
